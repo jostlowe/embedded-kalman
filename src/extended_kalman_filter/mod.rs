@@ -1,44 +1,44 @@
 mod tests;
 
-use nalgebra::{Matrix2, RealField, SMatrix, SVector, Vector2};
 use crate::covariance_matrix::CovarianceMatrix;
+use nalgebra::{Matrix2, RealField, SMatrix, SVector, Vector2};
 
-trait ExtendedKalmanFilterFunctions<
-    T: RealField,       // numerical type use for computation. Typically f32 or f64
-    const Nx: usize,    // Size of the state vector x
-    const Nz: usize,    // Size of the measurement vector z
-    const Nu: usize,    // Size of the input vector u
-> {
+trait Model<
+    // numerical type use for computation. Typically f32 or f64
+    T: RealField,
+    // Size of the state vector x
+    const Nx: usize,
+    // Size of the measurement vector z
+    const Nz: usize,
+    // Size of the input vector u
+    const Nu: usize,
+>
+{
+    // State transition function
     fn f(x: SVector<T, Nx>, u: SVector<T, Nu>) -> SVector<T, Nx>;
+
+    // Measurement function
     fn h(x: SVector<T, Nx>) -> SVector<T, Nz>;
+
+    // State transition Jacobian
+    fn f_jacobian(x: SVector<T, Nx>, u: SVector<T, Nu>) -> SMatrix<T, Nx, Nx>;
+
+    // Measurement function Jacobain
+    fn h_jacobian(x: SVector<T, Nx>) -> SMatrix<T, Nz, Nz>;
 }
 
-
-/*
 #[derive(Debug)]
-pub struct KalmanFilter
-<
-    T: RealField,       // numerical type use for computation. Typically f32 or f64
-    const Nx: usize,    // Size of the state vector x
-    const Nz: usize,    // Size of the measurement vector z
-    const Nu: usize,    // Size of the input vector u
-
-    // Non-linear state function and measurement function
-    F: Fn(SVector<T, Nx>, SVector<T, Nu>) -> SVector<T, Nx>,
-    H: Fn(SVector<T, Nx>) -> SVector<T, Nz>,
-
-    // State and measurement jacobians
-    F_: Fn(SVector<T, Nx>, SVector<T, Nu>) -> SMatrix<T, Nx, Nx>,
-    H_: Fn(SVector<T, Nx>) -> SMatrix<T, Nz, Nz>,
-
-    // The state of the Kalman Filter
-    S: State
-> {
-    constants: Constants<T, Nx, Nz, Nu, F, H, F_, H_>,
+pub struct KalmanFilter<T, const Nx: usize, const Nz: usize, const Nu: usize, S, M>
+where
+    T: RealField,
+    S: State,
+    M: Model<T, Nx, Nz, Nu>,
+{
+    model: M,
     state: S,
 }
 
-
+/*
 impl<T, const Nx: usize, const Nz: usize, const Nu: usize>
 KalmanFilter<T, Nx, Nz, Nu, Update<T, Nx, Nx>>
     where
@@ -139,16 +139,13 @@ KalmanFilter<T, Nx, Nz, Nu, Predict<T, Nx, Nx>>
 #[derive(Debug)]
 struct Constants<
     T: RealField,
-
     // Matrix Dimensions
     const Nx: usize,
     const Nz: usize,
     const Nu: usize,
-
     // Non-linear state function and measurement function
     F: Fn(SVector<T, Nx>, SVector<T, Nu>) -> SVector<T, Nx>,
     H: Fn(SVector<T, Nx>) -> SVector<T, Nz>,
-
     // State and measurement jacobians
     F_: Fn(SVector<T, Nx>, SVector<T, Nu>) -> SMatrix<T, Nx, Nx>,
     H_: Fn(SVector<T, Nx>) -> SMatrix<T, Nz, Nz>,
@@ -170,8 +167,8 @@ struct Constants<
 
 #[derive(Debug)]
 struct Predict<T, const Nx: usize, const Nz: usize>
-    where
-        T: RealField,
+where
+    T: RealField,
 {
     // Prior state covariance matrix
     P_prior: SMatrix<T, Nx, Nx>,
@@ -181,8 +178,8 @@ struct Predict<T, const Nx: usize, const Nz: usize>
 }
 
 struct Update<T, const Nx: usize, const Nz: usize>
-    where
-        T: RealField,
+where
+    T: RealField,
 {
     // Prior state covariance matrix
     P_posterior: SMatrix<T, Nx, Nx>,
@@ -196,9 +193,9 @@ pub trait State {}
 impl<T, const Nx: usize, const Nz: usize> State for Predict<T, Nx, Nz> where T: RealField {}
 impl<T, const Nx: usize, const Nz: usize> State for Update<T, Nx, Nz> where T: RealField {}
 
-fn wolol(){
+fn wolol() {
     let v = Vector2::new(1.0, 1.0);
-    let a: Constants<f64, 2, 2, 2, _, _, _, _> = Constants{
+    let a: Constants<f64, 2, 2, 2, _, _, _, _> = Constants {
         f: |x, u| x + v,
         h: |x| x,
         F: |x, u| Matrix2::new(1.0, 1.0, 1.0, 1.0),
